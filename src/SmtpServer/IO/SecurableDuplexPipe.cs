@@ -54,6 +54,9 @@ namespace SmtpServer.IO
 
             _stream = sslStream;
 
+            await Input.CompleteAsync();
+            await Output.CompleteAsync();
+
             Input = PipeReader.Create(_stream);
             Output = PipeWriter.Create(_stream);
         }
@@ -68,8 +71,11 @@ namespace SmtpServer.IO
             {
                 if (disposing)
                 {
-                    _disposeAction();
+                    Input?.Complete();
+                    Output?.Complete();
+                    _stream?.Dispose();
                     _stream = null;
+                    _disposeAction();
                 }
 
                 _disposed = true;

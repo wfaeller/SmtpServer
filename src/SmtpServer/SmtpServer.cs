@@ -10,7 +10,7 @@ namespace SmtpServer
     /// <summary>
     /// Smtp Server
     /// </summary>
-    public class SmtpServer
+    public class SmtpServer : IDisposable
     {
         /// <summary>
         /// Raised when a session has been created.
@@ -122,7 +122,7 @@ namespace SmtpServer
         {
             // The listener can be stopped either by the caller cancelling the CancellationToken used when starting the server, or when calling
             // the shutdown method. The Shutdown method will stop the listeners and allow any active sessions to finish gracefully.
-            var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_shutdownTokenSource.Token, cancellationToken);
+            using var cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_shutdownTokenSource.Token, cancellationToken);
 
             using var endpointListener = _endpointListenerFactory.CreateListener(endpointDefinition);
 
@@ -138,6 +138,7 @@ namespace SmtpServer
                 catch (OperationCanceledException) { }
                 catch (Exception ex)
                 {
+                    sessionContext.Pipe?.Dispose();
                     OnSessionFaulted(new SessionFaultedEventArgs(sessionContext, ex));
                     continue;
                 }
@@ -153,5 +154,18 @@ namespace SmtpServer
         /// The task that completes when the server has shutdown and stopped accepting new sessions.
         /// </summary>
         public Task ShutdownTask => _shutdownTask.Task;
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+        {
+            _shutdownTokenSource.Dispose();
+
+            SessionCreated = null;
+            SessionCompleted = null;
+            SessionFaulted = null;
+            SessionCancelled = null;
+        }
     }
 }

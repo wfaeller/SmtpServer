@@ -24,7 +24,7 @@ namespace SmtpServer
             handle.CompletionTask = RunAsync(handle, cancellationToken).ContinueWith(task =>
             {
                 Remove(handle);
-            });
+            }, TaskScheduler.Default);
         }
 
         async Task RunAsync(SmtpSessionHandle handle, CancellationToken cancellationToken)
@@ -56,6 +56,7 @@ namespace SmtpServer
             finally
             {
                 await handle.SessionContext.Pipe.Input.CompleteAsync();
+                await handle.SessionContext.Pipe.Output.CompleteAsync();
                 
                 handle.SessionContext.Pipe.Dispose();
             }
